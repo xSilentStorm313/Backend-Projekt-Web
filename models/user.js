@@ -2,7 +2,6 @@ const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const JWT_SECRET = 'meinSchlüssel';
 const bcrypt = require('bcrypt');
-const moment = require('moment');
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -31,12 +30,6 @@ const userSchema = new mongoose.Schema({
   birthdate: {
     type: String,
     required: true,
-    validate: {
-      validator: function(value) {
-        return moment(value, 'DD.MM.YYYY').isBefore(moment());
-      },
-      message: 'Geburtsdatum kann nicht in der Zukunft sein',
-    },
   },
   password: {
     type: String,
@@ -89,13 +82,6 @@ userSchema.pre('save', async function(next) {
   if (user.isModified('password')) {
     user.password = await bcrypt.hash(user.password, 8);
   }
-  next();
-});
-
-userSchema.pre('save', async function(next) {
-  // eslint-disable-next-line no-invalid-this
-  const user = this;
-  user.birthdate = moment(user.birthdate, 'DD.MM.YYYY').toDate();
   next();
 });
 
