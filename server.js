@@ -53,7 +53,7 @@ mongoose.connect(process.env.DB_URL)
         next();
       });
 
-      app.get('/users/:id', authenticate, function(req, res) {
+      app.get('/users/:id', function(req, res) {
         User.findById(req.params.id, function(error, user) {
           if (error) {
             res.status(500).send(error);
