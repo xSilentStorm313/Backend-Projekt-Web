@@ -192,6 +192,7 @@ mongoose.connect(process.env.DB_URL)
           const comment = new Comment({
             text: req.body.text,
             author: req.user._id,
+            channel: req.body.channel,
           });
           await comment.save();
           res.status(201).send(comment);

@@ -14,6 +14,11 @@ const commentSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  channel: {
+    type: String,
+    default: '',
+    required: true,
+  },
 });
 
 const Comments = mongoose.model('Comments', commentSchema);
