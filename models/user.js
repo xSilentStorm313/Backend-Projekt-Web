@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const JWT_SECRET = 'meinSchlüssel';
 const bcrypt = require('bcrypt');
+const moment = require('moment');
 
 const userSchema = new mongoose.Schema({
   name: {
