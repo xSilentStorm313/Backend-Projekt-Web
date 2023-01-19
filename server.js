@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
 const User = require('./models/user');
+const Comment = require('./models/comments');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const cors = require('cors');
@@ -11,7 +12,9 @@ app.use(cors());
 
 const authenticate = async (req, res, next) => {
   let token = req.header('Authorization');
-  token = token.replace('Bearer ', '');
+  if (token) {
+    token = token.replace('Bearer ', '');
+  }
   try {
     if (!token) {
       return res.status(401).send({error: 'Unauthorized: No token provided'});
@@ -56,10 +59,8 @@ mongoose.connect('mongodb://localhost:27017/projektWeb')
       });
 
       app.post('/users', async (req, res) => {
-        console.log('Hallo');
-        console.log(req.body);
         try {
-          // neues User-Dokument erstellen
+        // neues User-Dokument erstellen
           const user = new User({
             name: req.body.name,
             vorname: req.body.vorname,
@@ -71,7 +72,6 @@ mongoose.connect('mongodb://localhost:27017/projektWeb')
             children: req.body.children,
             country_of_origin: req.body.country_of_origin,
           });
-          console.log(user);
 
           // Generiere den Token
           const token = await user.generateAuthToken();
@@ -79,22 +79,29 @@ mongoose.connect('mongodb://localhost:27017/projektWeb')
           await user.save();
           res.send(user);
         } catch (err) {
-          res.send('Fehler beim Speichern des Users: ' + err);
+          if (err.name === 'ValidationError') {
+            res.status(400).send({error: 'Validation Error: ' + err.message});
+          } else if (err.name === 'MongoError' && err.code === 11000) {
+            const field = Object.keys(err.keyValue)[0];
+            res.status(400).send({error: `${field} already exists`});
+          } else {
+            res.status(500).send({error: 'Internal Server Error'});
+          }
         }
       });
 
       app.post('/users/login', async (req, res) => {
-        // Versuchen Sie, einen Benutzer mit dem angegebenen Benutzernamen zu finden
+      // Versuchen Sie, einen Benutzer mit dem angegebenen Benutzernamen zu finden
         const user = await User.findOne({email: req.body.email});
         if (!user) {
-          // Benutzer nicht gefunden: Antwort mit Fehlermeldung zurücksenden
+        // Benutzer nicht gefunden: Antwort mit Fehlermeldung zurücksenden
           return res.status(401).send({error: 'Invalid login credentials'});
         }
 
         // Überprüfen Sie, ob das Passwort korrekt ist
         const isPasswordValid = await bcrypt.compare(req.body.password, user.password);
         if (!isPasswordValid) {
-          // Falsches Passwort: Antwort mit Fehlermeldung zurücksenden
+        // Falsches Passwort: Antwort mit Fehlermeldung zurücksenden
           return res.status(401).send({error: 'Invalid login credentials'});
         }
 
@@ -106,7 +113,7 @@ mongoose.connect('mongodb://localhost:27017/projektWeb')
         await user.save();
 
         // Antwort mit dem Token zurücksenden
-        res.send({token});
+        res.send({token: token, user_id: user._id});
       });
 
       app.post('/users/logout', async (req, res) => {
@@ -128,7 +135,6 @@ mongoose.connect('mongodb://localhost:27017/projektWeb')
           res.status(500).send({error: 'Internal server error'});
         }
       });
-
 
       app.patch('/users/:id', authenticate, function(req, res) {
         User.findById(req.params.id, function(error, user) {
@@ -163,6 +169,53 @@ mongoose.connect('mongodb://localhost:27017/projektWeb')
             res.status(200).send('User deleted');
           }
         });
+      });
+
+      app.get('/comments', async (req, res) => {
+        try {
+          const comments = await Comment.find();
+          res.send(comments);
+        } catch (error) {
+          res.status(500).send({error: 'Internal server error'});
+        }
+      });
+
+      app.post('/comments', authenticate, async (req, res) => {
+        try {
+          const comment = new Comment({
+            text: req.body.text,
+            author: req.user._id,
+          });
+          await comment.save();
+          res.status(201).send(comment);
+        } catch (error) {
+          res.status(400).send({error: 'Invalid data provided'});
+        }
+      });
+
+      app.delete('/comments/:id', async (req, res) => {
+        try {
+          console.log(req.params.id);
+          const comment = await Comment.findByIdAndDelete(req.params.id);
+          if (!comment) {
+            return res.status(404).send({error: 'Comment not found'});
+          }
+          res.send({message: 'Comment deleted successfully'});
+        } catch (error) {
+          res.status(500).send({error: 'Internal server error'});
+        }
+      });
+
+      app.patch('/comments/:id', async (req, res) => {
+        try {
+          const comment = await Comment.findByIdAndUpdate(req.params.id, {$set: req.body}, {new: true});
+          if (!comment) {
+            return res.status(404).send({error: 'Comment not found'});
+          }
+          res.send(comment);
+        } catch (error) {
+          res.status(500).send({error: 'Internal server error'});
+        }
       });
 
       app.listen(3001, () => {
