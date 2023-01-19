@@ -32,9 +32,15 @@ const userSchema = new mongoose.Schema({
     required: true,
     validate: {
       validator: function(value) {
-        return value <= Date.now();
+        return moment(value, 'DD.MM.YYYY').isBefore(moment());
       },
       message: 'Geburtsdatum kann nicht in der Zukunft sein',
+    },
+    get: function(value) {
+      return moment(value).format('DD.MM.YYYY');
+    },
+    set: function(value) {
+      return moment(value, 'DD.MM.YYYY').toDate();
     },
   },
   password: {
