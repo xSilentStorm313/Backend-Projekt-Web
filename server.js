@@ -6,6 +6,7 @@ const Comment = require('./models/comments');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const cors = require('cors');
+require('dotenv').config();
 
 app.use(bodyParser.json());
 app.use(cors());
@@ -32,7 +33,7 @@ const authenticate = async (req, res, next) => {
   }
 };
 
-mongoose.connect('mongodb://localhost:27017/projektWeb')
+mongoose.connect(process.env.DB_URL)
     .then(() => {
       console.log('Successfully connected to MongoDB');
 
