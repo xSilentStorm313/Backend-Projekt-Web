@@ -47,6 +47,12 @@ mongoose.connect(process.env.DB_URL)
         });
       });
 
+      app.all('/*', function(req, res, next) {
+        res.header('Access-Control-Allow-Origin', '*');
+        res.header('Access-Control-Allow-Headers', 'X-Requested-With');
+        next();
+      });
+
       app.get('/users/:id', authenticate, function(req, res) {
         User.findById(req.params.id, function(error, user) {
           if (error) {
