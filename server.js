@@ -84,7 +84,7 @@ mongoose.connect(process.env.DB_URL)
           const token = await user.generateAuthToken();
           user.tokens = user.tokens.concat({token});
           await user.save();
-          res.send(user);
+          res.send({token: token, user_id: user._id, user: user});
         } catch (err) {
           if (err.name === 'ValidationError') {
             res.status(400).send({error: 'Validation Error: ' + err.message});
